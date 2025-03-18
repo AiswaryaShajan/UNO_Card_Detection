@@ -31,18 +31,24 @@ while True:
     upper_v = cv.getTrackbarPos("Upper-V", "Trackbars")
 
     # Define lower and upper HSV bounds using the trackbar positions
-    lower_bound = np.array([lower_h, lower_s, lower_v])
-    upper_bound = np.array([upper_h, upper_s, upper_v])
+    lower_bound_green = np.array([lower_h, lower_s, lower_v],np.uint8)
+    upper_bound_green = np.array([upper_h, upper_s, upper_v],np.uint8)
+    lower_bound_red = np.array([136,147,147],np.uint8)
+    upper_bound_red = np.array([179,255,255],np.uint8)
 
     # Create a mask 
-    mask = cv.inRange(hsv_frame, lower_bound, upper_bound)
+    green_mask = cv.inRange(hsv_frame, lower_bound_green, upper_bound_green)
+    red_mask = cv.inRange(hsv_frame, lower_bound_red, upper_bound_red)
 
     # Apply the mask to the original frame
-    result = cv.bitwise_and(frame, frame, mask=mask)
+    green_result = cv.bitwise_and(frame, frame, mask=green_mask)
+    red_result = cv.bitwise_and(frame,frame,mask=red_mask)
 
     cv.imshow("Original Frame", frame)
-    cv.imshow("Mask", mask)
-    cv.imshow("Result", result)
+    cv.imshow("red Mask", red_mask)
+    cv.imshow("green mask", green_mask)
+    cv.imshow("green Result", green_result)
+    cv.imshow("Red result", red_result)
 
     if cv.waitKey(1) & 0xFF == ord('q'):
         break
