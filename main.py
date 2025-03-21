@@ -1,41 +1,38 @@
 import cv2 as cv
 import numpy as np
 
-cap = cv.VideoCapture(0)
+def process_image(image_path,scale_percent=30):
+    # Read image 
+    image = cv.imread(image_path)
 
-while True:
-    ret, frame = cap.read()
-    hsv_frame = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
-    center_x, center_y = frame.shape[1] // 2, frame.shape[0] // 2
-    cv.circle(frame, (center_x, center_y), 5, (255, 0, 0), -1)
+    # Resize the image
+    width = int(image.shape[1] * scale_percent / 100)
+    height = int(image.shape[0] * scale_percent / 100)
+    dim = (width, height)
+    image = cv.resize(image, dim, interpolation=cv.INTER_AREA)
 
-    # Finding the HSV value from the webcam frame
-    hsv_value = hsv_frame[center_y, center_x]
-    print(f"HSV Value at center: {hsv_value}")
+    # Convert to grayscale
+    gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
 
+    # Gaussian blur to remove noise 
+    blur = cv.GaussianBlur(gray, (5,5), 0)
 
-    # Define HSV values
-    # lower_bound_red = np.array([ , , ,],np.uint8)
-    # upper_bound_red = np.array([ , , ,],np.uint8)
+    # Canny Edge detection 
+    edges = cv.Canny(blur, 30, 100)
 
-    # # Create the mask 
-    # red_mask1 = cv.inRange(hsv_frame, lower_bound_red, upper_bound_red)
-    
-   
-    # Combining the masks using bitwise or
-    # red_mask = cv.bitwise_or(red_mask1,red_mask2)
+    # Find contours
+    contours, _ = cv.findContours(edges, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
-    # Apply the mask to the original frame
-    # red_result = cv.bitwise_and(frame,frame,mask=red_mask)
+    # Draw contours on the original image
+    result = image.copy()
+    cv.drawContours(result, contours, -1, (0, 255, 0), 2)
 
+    cv.imshow('Original Image', image)
+    cv.imshow('gray', gray)
+    cv.imshow('blur', blur)
+    cv.imshow('edges', edges)
+    cv.imshow('contours', result)
+    cv.waitKey(0)
+    cv.destroyAllWindows()
 
-
-
-    cv.imshow("Original Frame", frame)
-    # cv.imshow("red Mask1", red_mask1)
-
-    if cv.waitKey(1) & 0xFF == ord('q'):
-        break
-
-cap.release()
-cv.destroyAllWindows()
+process_image('image_dataset/red_2_shadow.jpeg')
