@@ -1,5 +1,4 @@
 import cv2 as cv
-from cv2.gapi import mask
 import numpy as np
 
 def order_points(pts):
@@ -21,10 +20,10 @@ def detect_color(image):
     
     # Define color ranges (HSV format)
     color_ranges = {
-        "Red": [(136,147,147), (179,255,255)],
-        "Blue": [(100, 150, 0), (140,255,255)],
-        "Green": [(40, 40, 40), (90, 255, 255)],#40, 40, 40), (90, 255, 255
-        "Yellow": [(15,43,88), (30, 255, 255)]
+        "Red": [(0, 120, 70), (10, 255, 255)],
+        "Blue": [(100, 150, 0), (140, 255, 255)],
+        "Green": [(40, 40, 40), (90, 255, 255)],
+        "Yellow": [(20, 100, 100), (30, 255, 255)]
     }
     
     detected_color = "Unknown"
@@ -58,83 +57,72 @@ def warp_card(image, approx):
 
     # Detect Color
     card_color = detect_color(warped)
-    print(f"Detected Card Color: {card_color}")
-    
-    return warped
+    cv.putText(warped, card_color, (10, 30), cv.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
 
-def resize_with_aspect_ratio(image, target_width=600):
-    """ Resizes image while maintaining aspect ratio """
-    height, width = image.shape[:2]
-    aspect_ratio = height / width
-    new_height = int(target_width * aspect_ratio)
-    resized_image = cv.resize(image, (target_width, new_height), interpolation=cv.INTER_AREA)
-    return resized_image
+    return warped, card_color
 
-def process_image(image_path):
-    """ Main function to process the image with aspect ratio resizing """
-    # Read image 
-    image = cv.imread(image_path)
-    if image is None:
-        print("Error: Image not found.")
-        return
-
-    # Resize while maintaining aspect ratio
-    image = resize_with_aspect_ratio(image, target_width=600)
-
-    # Convert to grayscale
-    gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
-
-    # Gaussian blur to remove noise 
+def detect_card(frame):
+    """ Detects a card in the given frame and warps it """
+    gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
     blur = cv.GaussianBlur(gray, (5,5), 0)
-
-    # Adaptive Thresholding for better contour detection
+    
+    # Adaptive thresholding for dynamic lighting conditions
     thresh = cv.adaptiveThreshold(blur, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2)
-
-    # Canny Edge detection (used only if needed)
-    edges = cv.Canny(blur, 50, 150)
 
     # Find contours
     contours, _ = cv.findContours(thresh, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
     if not contours:
-        print("No contours found!")
-        return
+        return frame, None  # No contours found, return original frame
 
     # Filter out very small contours
     contours = [c for c in contours if cv.contourArea(c) > 1000]
 
     if not contours:
-        print("No significant contours detected.")
-        return
+        return frame, None  # No significant contours found
 
-    # Find the largest contour
     largest_contour = max(contours, key=cv.contourArea)
-
-    # Draw contours on the original image
-    result = image.copy()
-    cv.drawContours(result, [largest_contour], -1, (0, 255, 0), 2)
-    epsilon = 0.02 * cv.arcLength(largest_contour, True)  # 2% of the arc length
+    epsilon = 0.02 * cv.arcLength(largest_contour, True)
     approx = cv.approxPolyDP(largest_contour, epsilon, True)
 
-    # Check if it's a quadrilateral (4 corners)
     if len(approx) == 4:
-        print("Found corners:", approx)
+        cv.drawContours(frame, [largest_contour], -1, (0, 255, 0), 2)
         for corner in approx:
-            x, y = corner[0]  # Each corner is stored as [[x, y]]
-            cv.circle(result, (x, y), 5, (255,0,0), -1)  # mark the corners
+            x, y = corner[0]
+            cv.circle(frame, (x, y), 5, (255, 0, 0), -1)
 
-        # Warp the card and detect color
-        warped_card = warp_card(image, approx)
+        warped_card, detected_color = warp_card(frame, approx)
         cv.imshow("Warped Card", warped_card)
-    else:
-        print("The detected contour is not a rectangle.")
 
-    cv.imshow('Original Image', image)
-    cv.imshow('Thresholded Image', thresh)
-    cv.imshow('Edges', edges)
-    cv.imshow('Contours', result)
-    cv.waitKey(0)
+        return frame, detected_color
+
+    return frame, None
+
+def start_webcam():
+    """ Opens the webcam and processes frames in real-time """
+    cap = cv.VideoCapture(0)
+
+    if not cap.isOpened():
+        print("Error: Could not open webcam.")
+        return
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        processed_frame, detected_color = detect_card(frame)
+
+        if detected_color:
+            cv.putText(processed_frame, f"Color: {detected_color}", (50, 50), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+
+        cv.imshow('Webcam Feed', processed_frame)
+
+        if cv.waitKey(1) & 0xFF == ord('q'):
+            break  # Press 'q' to exit
+
+    cap.release()
     cv.destroyAllWindows()
 
-# Test with an image
-process_image('image_dataset/yellow_9_1.jpg')  # Replace with your image path
+# Run the webcam function
+start_webcam()
