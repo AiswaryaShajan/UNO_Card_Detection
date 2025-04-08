@@ -84,8 +84,43 @@ def detect_card(image_path, scale_percent=50):
         return None
 
 if __name__ == "__main__":
-    card = detect_card('image_dataset/blue_6_1.jpg')
+    card = detect_card('image_dataset/blue_9.jpg')
     if card is not None:
         cv.imshow("Warped Card", card)
         cv.waitKey(0)
         cv.destroyAllWindows()
+import cv2 as cv
+from tkinter import filedialog
+from tkinter import Tk
+
+
+def detect_card_from_image():
+    print("🖼️ Image mode selected.")
+
+    # Open file dialog to select an image
+    root = Tk()
+    root.withdraw()  # Hide the root window
+    root.attributes("-topmost", 1)  # Make sure the dialog stays on top
+    file_path = filedialog.askopenfilename(
+        title="Select an image",
+        filetypes=[("Image files", "*.jpg *.jpeg *.png")]
+    )
+    root.destroy()
+
+    if not file_path:
+        print("No image selected.")
+        return
+
+    card = detect_card(file_path)
+
+    if card is not None:
+        # Create a named window and set it to always stay on top
+        cv.namedWindow("Warped Card", cv.WINDOW_NORMAL)
+        cv.setWindowProperty("Warped Card", cv.WND_PROP_TOPMOST, 1)  # Keeps the window on top
+        cv.imshow("Warped Card", card)
+        cv.waitKey(0)
+        cv.destroyAllWindows()
+    else:
+        print("Card detection failed.")
+
+
