@@ -1,41 +1,44 @@
 import cv2 as cv
 import numpy as np
+from card_detection import detect_card  # Import your warp function from separate file
 
-def preprocess_template(template):
-    """ Converts template to binary to focus only on the number. """
-    _, binary_template = cv.threshold(template, 128, 255, cv.THRESH_BINARY_INV)
-    return binary_template
+def match_template_on_card(card_image, template_path):
+    """Match the template on the warped card image only."""
+    # Convert card to grayscale and binary
+    gray_card = cv.cvtColor(card_image, cv.COLOR_BGR2GRAY)
+    _, binary_card = cv.threshold(gray_card, 128, 255, cv.THRESH_BINARY)
 
-def match_template(image, template):
-    """ Performs template matching with improved filtering. """
-    image = cv.resize(image, (800, 600))  # Resize for consistency
-    gray_image = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
-    
-    template = preprocess_template(template)  # Convert template to binary
+    # Load template in grayscale
+    template = cv.imread(template_path, cv.IMREAD_GRAYSCALE)
+    if template is None:
+        print("Error loading template.")
+        return
 
-    result = cv.matchTemplate(gray_image, template, cv.TM_CCOEFF_NORMED)
-    min_val, max_val, min_loc, max_loc = cv.minMaxLoc(result)
+    # Resize template to smaller size for corner matching
+    template = cv.resize(template, (60, 60), interpolation=cv.INTER_AREA)
 
-    # Get the best match coordinates
+    # Template Matching
+    result = cv.matchTemplate(binary_card, template, cv.TM_CCOEFF_NORMED)
+    _, max_val, _, max_loc = cv.minMaxLoc(result)
+
+    # Draw result on card
     top_left = max_loc
     bottom_right = (top_left[0] + template.shape[1], top_left[1] + template.shape[0])
+    cv.rectangle(card_image, top_left, bottom_right, (0, 255, 0), 2)
 
-    # Draw a rectangle around the detected number
-    cv.rectangle(image, top_left, bottom_right, (0, 255, 0), 2)
-
-    # Show the result
-    cv.imshow('Matched Image', image)
+    # Show result
+    cv.imshow("Template Match on Card", card_image)
     cv.waitKey(0)
     cv.destroyAllWindows()
 
-# Load the image and template in grayscale
-image_path = "C:/Users/HP/OneDrive/Desktop/UNO_Card_Detection/image_dataset/red_2.jpeg"
-template_path = "C:/Users/HP/OneDrive/Desktop/UNO_Card_Detection/templates/gray_2.jpg"
+# === Main Driver ===
+if __name__ == "__main__":
+    image_path = "image_dataset/yellow_7.jpg"
+    template_path = "processed_templates/binary_7_temp.jpg"  # Update this
 
-image = cv.imread(image_path)
-template = cv.imread(template_path, cv.IMREAD_GRAYSCALE)
+    warped_card = detect_card(image_path)
+    if warped_card is not None:
+        match_template_on_card(warped_card, template_path)
+    else:
+        print("Card not detected.")
 
-if image is not None and template is not None:
-    match_template(image, template)
-else:
-    print("Error loading images.")
