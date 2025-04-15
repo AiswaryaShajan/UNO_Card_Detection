@@ -84,7 +84,7 @@ def detect_card(image_path, scale_percent=50):
         return None
 
 if __name__ == "__main__":
-    card = detect_card('image_dataset/blue_9.jpg')
+    card = detect_card('image_dataset/blue_7.jpg')
     if card is not None:
         cv.imshow("Warped Card", card)
         cv.waitKey(0)
