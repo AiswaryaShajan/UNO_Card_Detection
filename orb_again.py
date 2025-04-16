@@ -5,13 +5,15 @@ import tkinter as tk
 from tkinter import filedialog
 
 # Load card templates
-def load_templates(template_path="binary_cards/"):
+def load_templates(template_path="templates/"):
     templates = {}
+    orb = cv2.ORB_create()  # Initialize ORB here
     for filename in os.listdir(template_path):
         if filename.endswith(".jpg") or filename.endswith(".png"):
             card_name = os.path.splitext(filename)[0]
             img = cv2.imread(os.path.join(template_path, filename), cv2.IMREAD_GRAYSCALE)
-            templates[card_name] = img
+            kp, des = orb.detectAndCompute(img, None)
+            templates[card_name] = {"image": img, "kp": kp, "des": des}
     return templates
 
 # Order points for warping
@@ -48,6 +50,12 @@ def detect_card(frame):
         return warped
     return None
 
+# Apply dilation to enhance features
+def apply_dilation(image, kernel_size=(3,3), iterations=1):
+    kernel = np.ones(kernel_size, np.uint8)
+    dilated_image = cv2.dilate(image, kernel, iterations=iterations)
+    return dilated_image
+
 # Match card using ORB features
 def match_card(warped_card, orb, bf, templates):
     gray_card = cv2.cvtColor(warped_card, cv2.COLOR_BGR2GRAY)
@@ -56,11 +64,16 @@ def match_card(warped_card, orb, bf, templates):
     best_match = None
     max_matches = 0
 
-    for card_name, template in templates.items():
-        kp_template, des_template = orb.detectAndCompute(template, None)
-        matches = bf.match(des_card, des_template)
-        matches = sorted(matches, key=lambda x: x.distance)
-        good_matches = [m for m in matches if m.distance < 150]
+    for card_name, data in templates.items():
+        des_template = data["des"]
+        kp_template = data["kp"]
+
+        if des_template is None or des_card is None:
+            continue
+
+        matches = bf.knnMatch(des_card, des_template, k=2)
+        good_matches = [m for m, n in matches if m.distance < 0.75 * n.distance]
+
         if len(good_matches) > max_matches:
             max_matches = len(good_matches)
             best_match = card_name
@@ -94,15 +107,19 @@ def detect_color(card_image):
     return detected_color
 
 # Draw color label
-def draw_color_label(card_image, color):
-    if color:
-        text = color
+def draw_color_label(card_image, color, best_match):
+    if color and best_match:
+        # Combine color and card name
+        text = f"{color} {best_match}"
         font = cv2.FONT_HERSHEY_SIMPLEX
         position = (20, 50)
-        font_scale = 0.8
-        font_color = (0, 0, 0)
+        font_scale = 1.2
+        font_color = (255, 255, 255)  # White color
+        outline_color = (0, 0, 0)  # Black color for outline
         thickness = 2
-        cv2.putText(card_image, text, position, font, font_scale, (255, 255, 255), thickness + 2, cv2.LINE_AA)
+        outline_thickness = thickness + 2
+        # Draw text in white color
+        cv2.putText(card_image, text, position, font, font_scale, outline_color, outline_thickness, cv2.LINE_AA)
         cv2.putText(card_image, text, position, font, font_scale, font_color, thickness, cv2.LINE_AA)
 
 # Resize image while preserving aspect ratio
@@ -121,21 +138,17 @@ def process_and_display(frame, orb, bf, templates):
     warped_card = detect_card(frame)
 
     if warped_card is not None:
-        best_match = match_card(warped_card, orb, bf, templates)
-        detected_color = detect_color(warped_card)
+        # Apply dilation to the warped card
+        dilated_card = apply_dilation(warped_card)
 
-        if best_match:
-            cv2.putText(frame, f"Detected: {best_match}", (10, 50),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        best_match = match_card(dilated_card, orb, bf, templates)
+        detected_color = detect_color(dilated_card)
 
-        if detected_color:
-            draw_color_label(frame, detected_color)
+        if detected_color and best_match:
+            draw_color_label(frame, detected_color, best_match)
 
-        # Display the warped card in a separate window
-        cv2.imshow("Warped Card", warped_card)
-
-    # Show the original frame with detections
-    cv2.imshow("Card Detection", frame)
+        cv2.imshow("Card Detection", frame)
+        cv2.waitKey(1)
 
 # Webcam mode
 def run_webcam_mode(orb, bf, templates):
@@ -163,10 +176,13 @@ def run_image_mode(orb, bf, templates):
     # Open file dialog to select an image
     root = tk.Tk()
     root.withdraw()  # Hide the root tkinter window
+    root.attributes('-topmost', True)  # Make the file dialog appear on top
     file_path = filedialog.askopenfilename(
         title="Select an Image File",
         filetypes=[("Image Files", "*.jpg *.jpeg *.png *.bmp *.tiff")]
     )
+    root.destroy()  # Destroy the root window after file selection
+
     if not file_path:
         print("No file selected.")
         return
@@ -192,18 +208,17 @@ def main():
     print("2. Image from file")
     choice = input("Enter 1 or 2: ")
 
-    # Initialize SIFT (instead of ORB)
-    sift = cv2.SIFT_create()
-    # Use BFMatcher with L2 norm for SIFT
-    bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=False)
+    # Initialize ORB
+    orb = cv2.ORB_create()
+    # Use BFMatcher with Hamming norm for ORB
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=False)
     templates = load_templates()
-
     if choice == "1":
-        run_webcam_mode(sift, bf, templates)  # Pass SIFT to the webcam mode
+        run_webcam_mode(orb, bf, templates)
     elif choice == "2":
-        run_image_mode(sift, bf, templates)  # Pass SIFT to the image mode
+        run_image_mode(orb, bf, templates)
     else:
         print("Invalid choice. Please restart and enter 1 or 2.")
-        
+
 if __name__ == "__main__":
     main()
