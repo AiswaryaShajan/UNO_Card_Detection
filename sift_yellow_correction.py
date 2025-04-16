@@ -99,17 +99,21 @@ def detect_color(card_image):
     return detected_color
 
 # Draw color label
-def draw_color_label(card_image, color):
-    if color:
-        text = color
+def draw_color_label(card_image, color, best_match):
+    if color and best_match:
+        # Combine color and card name
+        text = f"{color} {best_match}"
         font = cv2.FONT_HERSHEY_SIMPLEX
         position = (20, 50)
-        font_scale = 0.8
-        font_color = (0, 0, 0)
+        font_scale = 1.2
+        font_color = (255, 255, 255)  # White color
+        outline_color = (0, 0, 0)  # Black color for outline
         thickness = 2
-        cv2.putText(card_image, text, position, font, font_scale, (255, 255, 255), thickness + 2, cv2.LINE_AA)
+        outline_thickness = thickness + 2
+        # Draw text in white color
+        cv2.putText(card_image, text, position, font, font_scale, outline_color, outline_thickness, cv2.LINE_AA)
         cv2.putText(card_image, text, position, font, font_scale, font_color, thickness, cv2.LINE_AA)
-
+        
 # Resize image while preserving aspect ratio
 def resize_image(image, max_width=800, max_height=800):
     h, w = image.shape[:2]
@@ -132,16 +136,16 @@ def process_and_display(frame, sift, bf, templates):
         best_match = match_card(dilated_card, sift, bf, templates)
         detected_color = detect_color(dilated_card)
 
-        if best_match:
-            cv2.putText(frame, f"Detected: {best_match}", (10, 50),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        # Remove the "Detected: [card]" text display
+        # if best_match:
+        #     cv2.putText(frame, f"Detected: {best_match}", (10, 50),
+        #                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-        if detected_color:
-            draw_color_label(frame, detected_color)
+        # Display only the color and card label
+        if detected_color and best_match:
+            draw_color_label(frame, detected_color, best_match)
 
         # Display the warped and dilated card in separate windows
-# Show and position windows side by side
-# One-time setup
         cv2.imshow("Warped Card", warped_card)
         cv2.setWindowProperty("Warped Card", cv2.WND_PROP_TOPMOST, 1)
         cv2.waitKey(1)
@@ -208,7 +212,7 @@ def run_image_mode(sift, bf, templates):
     process_and_display(frame, sift, bf, templates)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-    
+
 # Main menu
 def main():
     print("Choose input mode:")
