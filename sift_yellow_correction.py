@@ -140,11 +140,23 @@ def process_and_display(frame, sift, bf, templates):
             draw_color_label(frame, detected_color)
 
         # Display the warped and dilated card in separate windows
+# Show and position windows side by side
+# One-time setup
         cv2.imshow("Warped Card", warped_card)
-        cv2.imshow("Dilated Card", dilated_card)
+        cv2.setWindowProperty("Warped Card", cv2.WND_PROP_TOPMOST, 1)
+        cv2.waitKey(1)
+        cv2.setWindowProperty("Warped Card", cv2.WND_PROP_TOPMOST, 0)
 
-    # Show the original frame with detections
-    cv2.imshow("Card Detection", frame)
+        cv2.imshow("Dilated Card", dilated_card)
+        cv2.setWindowProperty("Dilated Card", cv2.WND_PROP_TOPMOST, 1)
+        cv2.waitKey(1)
+        cv2.setWindowProperty("Dilated Card", cv2.WND_PROP_TOPMOST, 0)
+
+        cv2.imshow("Card Detection", frame)
+        cv2.setWindowProperty("Card Detection", cv2.WND_PROP_TOPMOST, 1)
+        cv2.waitKey(1)
+        cv2.setWindowProperty("Card Detection", cv2.WND_PROP_TOPMOST, 0)
+        cv2.waitKey(1)
 
 # Webcam mode
 def run_webcam_mode(sift, bf, templates):
