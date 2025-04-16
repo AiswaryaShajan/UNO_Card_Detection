@@ -184,10 +184,13 @@ def run_image_mode(sift, bf, templates):
     # Open file dialog to select an image
     root = tk.Tk()
     root.withdraw()  # Hide the root tkinter window
+    root.attributes('-topmost', True)  # Make the file dialog appear on top
     file_path = filedialog.askopenfilename(
         title="Select an Image File",
         filetypes=[("Image Files", "*.jpg *.jpeg *.png *.bmp *.tiff")]
     )
+    root.destroy()  # Destroy the root window after file selection
+
     if not file_path:
         print("No file selected.")
         return
@@ -205,7 +208,7 @@ def run_image_mode(sift, bf, templates):
     process_and_display(frame, sift, bf, templates)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-
+    
 # Main menu
 def main():
     print("Choose input mode:")
