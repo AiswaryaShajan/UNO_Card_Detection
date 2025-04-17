@@ -5,7 +5,7 @@ import tkinter as tk
 from tkinter import filedialog
 
 # Load card templates
-def load_templates(template_path="binary_cards/"):
+def load_templates(template_path="templates/"):
     templates = {}
     for filename in os.listdir(template_path):
         if filename.endswith(".jpg") or filename.endswith(".png"):

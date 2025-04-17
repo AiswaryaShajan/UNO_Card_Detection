@@ -18,6 +18,8 @@ def process_and_display(frame, sift, bf, templates):
             draw_color_label(frame, detected_color, best_match)
 
         cv2.imshow("Card Detection", frame)
+        cv2.imshow("Warped", warped_card)
+        cv2.imshow("Dilated", dilated_card)
 
 def run_webcam_mode(sift, bf, templates):
     cap = cv2.VideoCapture(0)
