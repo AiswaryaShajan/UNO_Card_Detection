@@ -42,24 +42,33 @@ A Python-based project for detecting and recognizing UNO cards in real-time usin
 
 ## How It Works
 - 🃏 Card Detection
-    - What happens: The input image or webcam frame is scanned for contours. The largest quadrilateral contour is assumed to be the card.
-
-    - Output: A transformed (flattened) image of the card is generated using perspective transform.
+    - The input image or webcam frame is scanned for contours. The largest quadrilateral contour is assumed to be the card.
+    - A transformed (flattened) image of the card is generated using `cv2.warpPerspective`
       
 
 - 🌈 Color Detection (HSV Masking)
-    - What happens: The transformed card image is converted to HSV. Color masks for red, green, blue, and yellow are applied.
-
-    - Output: The color with the highest mask area is selected as the dominant card color.
+   - The card image is converted to HSV color space, which allows for more accurate color segmentation than RGB. Each UNO card color   (Red, Green, Blue, Yellow) has predefined HSV value ranges. For each color:
+    - A binary mask is created using `cv2.inRange()`.
+    - The number of matching pixels is counted.
+    - The color with the highest pixel count is returned as the detected card color
 
 
 - Feature Matching
-    - SIFT keypoints are extracted from the card and matched against the stored templates using BFMatcher with Lowe's ratio test.
+    - To recognize the number or symbol on a detected UNO card:
+
+    - The input card is converted to grayscale, and SIFT (Scale-Invariant Feature Transform) is used to extract keypoints and descriptors.
+    - The card is compared against a set of preloaded templates (grayscale images of known UNO cards).
+    - For each template:
+        -SIFT descriptors are computed.
+        -Feature matching is performed using Brute-Force Matcher with knnMatch() and Lowe’s ratio test (0.75 threshold).
+    - The template with the highest number of good matches is selected as the recognized card.
+    - This method is scale- and rotation-invariant, and works well with clear, upright cards against a simple background.
 
 - Label Overlay
     - The detected color and card name (e.g., "Red 4") are drawn on the output frame.
 
 - Output
+     
      <img src="images/card_detection.JPG" alt="card_detection" width="500"/>
 
 ## Areas of Improvement
@@ -77,7 +86,7 @@ A Python-based project for detecting and recognizing UNO cards in real-time usin
    - The program performs best when cards are placed against a dark background. Adding better background segmentation or preprocessing techniques might make it more adaptable to different environments.
 
 ## What Next? 🔍:  
-   - Train a machine learning model for classification the cards for better detection accuracy and robust system.
+   - Train a machine learning model for classifying the cards for more robust detection.
 
 
 
