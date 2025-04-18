@@ -2,6 +2,9 @@
 
 A Python-based project for detecting and recognizing UNO cards in real-time using computer vision techniques.
 
+*Note: Currently, the detection is implemented only for UNO card numbers, and does not support symbols or special cards like Wild or Skip.*
+
+
 ## Features
 
 - Detects UNO cards from images or webcam.
@@ -55,12 +58,11 @@ A Python-based project for detecting and recognizing UNO cards in real-time usin
 
 - Feature Matching
     - To recognize the number or symbol on a detected UNO card:
-
     - The input card is converted to grayscale, and SIFT (Scale-Invariant Feature Transform) is used to extract keypoints and descriptors.
-    - The card is compared against a set of preloaded templates (grayscale images of known UNO cards).
+    - The card is compared against a set of preloaded templates.
     - For each template:
-        -SIFT descriptors are computed.
-        -Feature matching is performed using Brute-Force Matcher with knnMatch() and Lowe’s ratio test (0.75 threshold).
+        - SIFT descriptors are computed.
+        - Feature matching is performed using Brute-Force Matcher with knnMatch() and Lowe’s ratio test (0.75 threshold).
     - The template with the highest number of good matches is selected as the recognized card.
     - This method is scale- and rotation-invariant, and works well with clear, upright cards against a simple background.
 
@@ -89,4 +91,6 @@ A Python-based project for detecting and recognizing UNO cards in real-time usin
    - Train a machine learning model for classifying the cards for more robust detection.
 
 
+## Video Demonstration 
+   https://youtu.be/g9wNKXhUs18?si=RAJ63vj0u-fM1SUj
 
